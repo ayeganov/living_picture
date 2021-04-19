@@ -49,6 +49,8 @@
  * sox audiodump.wav -c 1 -r 8000 -u -b macstartup-8000.wav
  */
 
+#pragma once
+
 #include <avr/pgmspace.h>
 
 #ifdef __cplusplus
