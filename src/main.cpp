@@ -2,27 +2,37 @@
 #include "motor.hpp"
 
 #include "person_detector.hpp"
+#include "eye_controller.hpp"
 
 
-const int ECHO_PIN = 7;
-const int TRIGGER_PIN = 6;
+enum class State
+{
+  INITIALIZATION,
+  CLOSING_EYES,
+  RUNNING
+};
+
+
+State current_state = State::INITIALIZATION;
+const int ECHO_PIN = 3;
+const int TRIGGER_PIN = 4;
 const int MAX_DISTANCE_CM = 300;
+const int EYE_POSITION_PIN = 5;
+const char* yes = "yes";
+const char* no = "no";
+bool start_routine = false;
+bool greeting_played = false;
+unsigned long next_eye_look = 0;
 
-auto stepper = motor::StepperMotor(10, 11, 12, 13);
+auto eye_controller = eyes::EyeController();
 
-int potpin = 0;  // analog pin used to connect the potentiometer
-int val;    // variable to read the value from the analog pin
-unsigned long ping_timer = 0;
-unsigned long ping_speed = 30;
+
 const long BAUD_RATE = 115200;
 const float SOUND_THRESHOLD = 542;
 const int SOUND_SENSOR_PIN = A1;
 const int SOUND_SENSOR_DIG_PIN = 2;
-float current_distance = 0;
-bool do_sense_sound = false;
 unsigned long last_event = 0;
 
-bool start_routine = false;
 
 
 void sense_sound()
@@ -44,74 +54,95 @@ void sense_sound()
 }
 
 
+void send_current_state(const char* sound = nullptr)
+{
+  long eye_pos = eye_controller.get_eye_position();
+  Serial.print("eyes: ");
+  Serial.print(eye_pos);
+  Serial.print(" closed: ");
+  Serial.print(eye_controller.eyes_closed() ? yes : no);
+  Serial.print(" sound: ");
+  if(sound)
+  {
+    Serial.print(sound);
+  }
+}
+
+
 void setup()
 {
   // setup detection objects
   Serial.begin(BAUD_RATE);
-  ping_timer = last_event = millis();
-//  stepper.set_move(2000, motor::Direction::CW);
+  pinMode(EYE_POSITION_PIN, INPUT);
+
   detection::init_sonic_person_detector(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE_CM, 30);
   detection::set_detection_time(1000);
+  // read unconnected pin to get analog noise value
+  randomSeed(analogRead(0));
 }
-
 
 
 void loop()
 {
-  detection::update_person_state();
-  // detect person
-  // on detection
-  //  1. Open the eyes
-  //  2. Play sound - random 'khm', or 'hello there'
-  //  3. Enter sound detection mode
-  //    3a. If detected sound - play congrats sound
-  //  4. When person leaves - play good bye sound
-  if(detection::is_person_detected() and not start_routine)
+  if(current_state == State::INITIALIZATION)
   {
-    Serial.println("Detected person");
-    start_routine = true;
-  }
+    Serial.println("get_eye_position");
 
-  if(!detection::is_person_detected() and start_routine)
+    if(Serial.available() > 0)
+    {
+      auto position = (int)Serial.parseFloat();
+      eye_controller.init_eye_position(position);
+      eye_controller.close_eyes();
+      current_state = State::CLOSING_EYES;
+    }
+  }
+  else if(current_state == State::CLOSING_EYES)
   {
-    Serial.println("Person left");
-    start_routine = false;
-    // play good bye sound
+    send_current_state();
+    if(eye_controller.eyes_closed())
+    {
+      current_state = State::RUNNING;
+    }
   }
-
-  if(start_routine)
+  else
   {
-    // eye_controller.open_eyes();
-    // if(eye_controller.eyes_open()
-    // {
-    //    play sound
-    // }
+    // detect person
+    // on detection
+    //  1. Open the eyes
+    //  2. Play sound - random 'khm', or 'hello there'
+    //  3. Enter sound detection mode
+    //    3a. If detected sound - play congrats sound
+    //  4. When person leaves - play good bye sound
 
-    // if(loud sound detected)
-    // {
-    //    play congrats sound
-    // }
+    detection::update_person_state();
+    if(detection::is_person_detected() and not start_routine)
+    {
+      start_routine = true;
+      next_eye_look = millis() + random(10000, 15000);
+    }
+    else if(not detection::is_person_detected() and start_routine)
+    {
+      start_routine = false;
+      // play good bye sound
+      send_current_state("goodbye");
+      greeting_played = false;
+    }
+    else if(start_routine)
+    {
+      if(eye_controller.eyes_open() and not greeting_played)
+      {
+        send_current_state("hello");
+        greeting_played = true;
+      }
+      else if(millis() > next_eye_look)
+      {
+        send_current_state("random");
+        next_eye_look = millis() + random(10000, 15000);
+      }
+      else
+      {
+        send_current_state();
+      }
+    }
   }
-
-//  if(do_sense_sound)
-//  {
-//    sense_sound();
-//  }
-//
-//  if(stepper.steps_to_go() == 0)
-//  {
-//    Serial.print("Reversing the direction: ");
-//    if(stepper.direction() == motor::Direction::CW)
-//    {
-//      Serial.println("counter clockwise");
-//      stepper.set_move(2000, motor::Direction::CCW);
-//    }
-//    else
-//    {
-//      Serial.println("clockwise");
-//      stepper.set_move(2000, motor::Direction::CW);
-//    }
-//  }
-//
-//  stepper.run();
 }

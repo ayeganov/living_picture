@@ -31,6 +31,13 @@ void StepperMotor::set_move(unsigned long num_steps, Direction direction)
 }
 
 
+void StepperMotor::set_move(long num_steps)
+{
+  direction_ = num_steps < 0 ? Direction::CW : Direction::CCW;
+  steps_left_ = abs(num_steps);
+}
+
+
 void StepperMotor::run()
 {
   auto passed_time = millis() - last_run_;
@@ -42,6 +49,7 @@ void StepperMotor::run()
 
   if(direction_ == Direction::CW)
   {
+    --current_position_;
     switch(pin_step_)
     {
       case 0:
@@ -72,6 +80,7 @@ void StepperMotor::run()
   }
   else
   {
+    ++current_position_;
     switch(pin_step_)
     {
       case 0:
@@ -98,6 +107,11 @@ void StepperMotor::run()
         digitalWrite(pin_3_, LOW);
         digitalWrite(pin_4_, LOW);
     }
+  }
+
+  if(abs(current_position_) >= STEPS_PER_REVOLUTION)
+  {
+    current_position_ = 0;
   }
 
   ++pin_step_;
