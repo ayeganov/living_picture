@@ -59,6 +59,7 @@ flags = [
     ,'-x'
     ,'c++'
     ,'-ansi'
+    ,'--std=c++17'
 
     # Customize microcontroler and Arduino version
     ,'-mmcu=atmega328p'
