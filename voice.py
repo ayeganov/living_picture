@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import argparse
 import asyncio
 import glob
@@ -89,7 +91,7 @@ async def eyes_in_position(serial: aioserial.AioSerial, shelf: shelve.Dbfilename
         eye_pos, closed, *_ = unpack_msg(msg)
         print(f"eye pos: {eye_pos}, closed: {closed}, sound: {_}")
         record_eye_position(eye_pos, shelf)
-        if closed == "yes":
+        if closed is not None and closed == "yes":
             print("Eyes arrived in the closed position")
             break
     print("Eyes are closed")
