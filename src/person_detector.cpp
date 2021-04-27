@@ -8,7 +8,7 @@ namespace detection
 
 static bool threshold_crossed_ = false;
 static unsigned long ping_timer_ = millis();
-static unsigned int ping_delay_ms_ = 25;
+static unsigned int ping_delay_ms_ = 20;
 static NewPing* sonar_;
 static filter::Complementary sonic_filter_(0.5);
 static float detection_distance_;
@@ -69,7 +69,7 @@ void echo_check()
       person_left_time_ms_ = 0;
       if(person_arrived_time_ms_ == 0)
       {
-        Serial.println("Starting countdown to person detection");
+//        Serial.println("Starting countdown to person detection");
         person_arrived_time_ms_ = millis();
       }
       else if(person_arrived_time_ms_ > 0)
@@ -82,7 +82,7 @@ void echo_check()
     {
       if(person_left_time_ms_ == 0)
       {
-        Serial.println("Starting countdown to person left");
+//        Serial.println("Starting countdown to person left");
         person_left_time_ms_ = millis();
       }
       else
