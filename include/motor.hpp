@@ -17,7 +17,7 @@ private:
   unsigned long steps_left_ = 0;
   int pin_step_ = 0;
   Direction direction_ = Direction::CW;
-  long delay_ms_ = 2;
+  unsigned long delay_ms_ = 2;
   long last_run_;
   int pin_1_, pin_2_, pin_3_, pin_4_;
   long current_position_ = 0;

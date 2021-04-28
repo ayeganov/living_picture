@@ -1,3 +1,4 @@
+#include "Arduino.h"
 #include "eye_controller.hpp"
 
 
@@ -24,6 +25,7 @@ EyeController::EyeController()
 void EyeController::init_eye_position(long current_position)
 {
   motor_.set_current_position(current_position);
+  current_state_ = EyeState::READY;
 }
 
 
@@ -76,14 +78,14 @@ void EyeController::move_eyes_down()
 void EyeController::close_eyes()
 {
   auto steps_to_closed = motor_.get_current_position();
-  motor_.set_move(-steps_to_closed);
+  motor_.set_move(steps_to_closed, motor::Direction::CW);
   current_state_ = EyeState::CLOSED;
 }
 
 
 void EyeController::look_up_down()
 {
-  motor_.set_move(LOOK_MOVE_STEPS, motor::Direction::CW);
+  motor_.set_move(LOOK_MOVE_STEPS, motor::Direction::CCW);
   current_state_ = EyeState::UP;
 }
 
@@ -129,7 +131,6 @@ void EyeController::update_state()
       break;
     }
   }
-
   motor_.run();
 }
 

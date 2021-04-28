@@ -62,18 +62,6 @@ def get_eye_position(shelf: shelve.DbfilenameShelf):
     return shelf.get(EYE_POSITION, 0)
 
 
-async def initial_state(serial: aioserial.AioSerial, shelf: shelve.DbfilenameShelf):
-    print(f"Entering the init state with motor in position: {get_eye_position(shelf)}")
-    while True:
-        msg = (await serial.readline_async(-1)).decode(errors="ignore")
-        print(msg)
-        if msg.startswith(GET_EYE_POSITION):
-            eye_motor_position = get_eye_position(shelf)
-            written_bytes = await serial.write_async(f"{eye_motor_position}".encode("utf-8"))
-            break
-    print("Arduino motor initialized")
-
-
 def unpack_msg(state_msg: str):
     state_match = STATE_PATTERN.match(state_msg.rstrip('\n'))
     if state_match:
@@ -84,10 +72,31 @@ def unpack_msg(state_msg: str):
     return (None,) * 3
 
 
+async def initial_state(serial: aioserial.AioSerial, shelf: shelve.DbfilenameShelf):
+    print(f"Entering the init state with motor in position: {get_eye_position(shelf)}")
+    while True:
+        msg = (await serial.readline_async(-1)).decode(errors="ignore")
+        print(msg)
+        if msg.startswith(GET_EYE_POSITION):
+            eye_motor_position = get_eye_position(shelf)
+            written_bytes = await serial.write_async(f"{eye_motor_position}".encode("utf-8"))
+            break
+        else:
+            eyepos, closed, sound = unpack_msg(msg)
+            if eyepos is not None:
+                record_eye_position(eyepos, shelf)
+                break
+
+    print("Arduino motor initialized")
+
+
+
+
 async def eyes_in_position(serial: aioserial.AioSerial, shelf: shelve.DbfilenameShelf):
     print("Wating for the eyes to get to the closed position")
     while True:
         msg = (await serial.readline_async(-1)).decode(errors="ignore")
+        print(f"Original message: {msg}")
         eye_pos, closed, *_ = unpack_msg(msg)
         print(f"eye pos: {eye_pos}, closed: {closed}, sound: {_}")
         record_eye_position(eye_pos, shelf)
@@ -189,6 +198,7 @@ def create_parser():
 async def main():
     parser = create_parser()
     args = parser.parse_args()
+    counter = 0
 
     serial = aioserial.AioSerial(port=args.device.name, baudrate=BAUD_RATE)
     initialized = False
@@ -198,21 +208,11 @@ async def main():
 
     with shelve.open(STORAGE_NAME) as shelf:
         while running:
-            if not initialized:
-                await initial_state(serial, shelf)
-                await eyes_in_position(serial, shelf)
-                print("Picture is initialized")
-                initialized = True
-
             msg = (await serial.readline_async(-1)).decode(errors="ignore")
             eye_pos, closed, sound = unpack_msg(msg)
             record_eye_position(eye_pos, shelf)
 
-            if msg == GET_EYE_POSITION:
-                initialized = False
-                continue
-
-            print(f"sound {sound} player: {player.is_playing}")
+#            print(f"sound {sound} player: {player.is_playing}")
             valid_sound = sound is not None and len(sound.strip()) > 0
             if valid_sound and not player.is_playing:
                 sound_path = sounds_db.get_sound_file(sound)

@@ -40,6 +40,8 @@ void StepperMotor::set_move(long num_steps)
 
 void StepperMotor::run()
 {
+  if(steps_left_ == 0) return;
+
   auto passed_time = millis() - last_run_;
   if(passed_time < delay_ms_)
   {
