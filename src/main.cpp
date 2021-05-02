@@ -23,6 +23,8 @@ bool start_routine = false;
 bool greeting_played = false;
 unsigned long next_eye_look = 0;
 int HEAD = 0;
+unsigned long update_state_step_ms = 20;
+unsigned long last_update = 0;
 
 auto eye_controller = eyes::EyeController();
 
@@ -31,7 +33,7 @@ const long BAUD_RATE = 115200;
 
 void send_current_state(const char* sound = nullptr)
 {
-  long eye_pos = eye_controller.get_eye_position();
+  long eye_pos = 1;
   Serial.print("eyes: ");
   Serial.print(eye_pos);
   Serial.print(" closed: ");
@@ -50,16 +52,18 @@ void setup()
   // setup detection objects
   Serial.begin(BAUD_RATE);
 
-  detection::init_sonic_person_detector(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE_CM, 50);
-  detection::set_detection_time(1000);
+  detection::init_sonic_person_detector(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE_CM, 70);
+  detection::set_detection_time(600);
   eye_controller.init_eye_position(0);
   // read unconnected pin to get analog noise value
   randomSeed(analogRead(0));
+  last_update = millis();
 }
 
 
 void loop()
 {
+  auto current_millis = millis();
   if(Serial.available())
   {
     Serial.readStringUntil('\n');
@@ -70,7 +74,8 @@ void loop()
 
   eye_controller.update_state();
   detection::update_person_state();
-  send_current_state();
+
+  auto update_passed_time = current_millis - last_update;
 
   // detect person
   // on detection
@@ -83,7 +88,7 @@ void loop()
   if(detection::is_person_detected() and not start_routine)
   {
     start_routine = true;
-    next_eye_look = millis() + random(10000, 15000);
+    next_eye_look = current_millis + random(10000, 15000);
     eye_controller.open_eyes();
   }
   else if(not detection::is_person_detected() and start_routine)
@@ -101,7 +106,7 @@ void loop()
       send_current_state("hello");
       greeting_played = true;
     }
-    else if(millis() > next_eye_look)
+    else if(current_millis > next_eye_look)
     {
       int coin = random(0, 2);
       if(coin == HEAD)
@@ -112,7 +117,7 @@ void loop()
       {
         eye_controller.look_up_down();
       }
-      next_eye_look = millis() + random(10000, 15000);
+      next_eye_look = current_millis + random(10000, 15000);
     }
   }
 }

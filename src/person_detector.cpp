@@ -10,7 +10,7 @@ static bool threshold_crossed_ = false;
 static unsigned long ping_timer_ = millis();
 static unsigned int ping_delay_ms_ = 20;
 static NewPing* sonar_;
-static filter::Complementary sonic_filter_(0.5);
+static filter::Complementary sonic_filter_(0.7);
 static float detection_distance_;
 static unsigned long detection_time_ms_ = 3000;
 static unsigned long person_arrived_time_ms_ = 0;

@@ -206,17 +206,15 @@ async def main():
     player = SoundPlayer()
     sounds_db = SoundsDB(args.greeting_dir, args.bye_dir, args.random_dir)
 
-    with shelve.open(STORAGE_NAME) as shelf:
-        while running:
-            msg = (await serial.readline_async(-1)).decode(errors="ignore")
-            eye_pos, closed, sound = unpack_msg(msg)
-            record_eye_position(eye_pos, shelf)
+    while running:
+        msg = (await serial.readline_async(-1)).decode(errors="ignore")
+        eye_pos, closed, sound = unpack_msg(msg)
 
-#            print(f"sound {sound} player: {player.is_playing}")
-            valid_sound = sound is not None and len(sound.strip()) > 0
-            if valid_sound and not player.is_playing:
-                sound_path = sounds_db.get_sound_file(sound)
-                player.start_playing(sound_path)
+#        print(f"sound {sound} player: {player.is_playing}")
+        valid_sound = sound is not None and len(sound.strip()) > 0
+        if valid_sound and not player.is_playing:
+            sound_path = sounds_db.get_sound_file(sound)
+            player.start_playing(sound_path)
 
 try:
     asyncio.run(main())
