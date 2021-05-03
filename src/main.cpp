@@ -16,7 +16,7 @@ enum class State
 State current_state = State::INITIALIZATION;
 const int ECHO_PIN = 3;
 const int TRIGGER_PIN = 4;
-const int MAX_DISTANCE_CM = 300;
+const int MAX_DISTANCE_CM = 500;
 const char* yes = "yes";
 const char* no = "no";
 bool start_routine = false;
